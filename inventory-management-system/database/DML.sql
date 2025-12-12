@@ -6,10 +6,6 @@
 
 -- SECTION 1: SEED DATA
 
--- Drop existing procedures if they exist
-DROP PROCEDURE IF EXISTS ProcessNewOrder;
-DROP PROCEDURE IF EXISTS UpdateOrderStatus;
-DROP PROCEDURE IF EXISTS GetCustomerOrderHistory;
 -- Insert sample customers (idempotent without IGNORE)
 INSERT INTO Customers (customer_id, first_name, last_name, email, phone, shipping_address) VALUES
 (1, 'John', 'Doe', 'john.doe@example.com', '555-0101', '123 Elm St, Springfield, IL 62701'),
@@ -196,7 +192,6 @@ GROUP BY
 ORDER BY 
     total_spent DESC
 LIMIT 10;
-
 -- KPI 3: BEST-SELLING PRODUCTS (TOP 5 BY QUANTITY)
 SELECT 
     p.product_id,
@@ -319,9 +314,14 @@ BEGIN
     ELSE
         SELECT quantity_on_hand INTO p_current_stock
         FROM Inventory
-        WHERE product_id = p_product_id;
+        WHERE product_id = p_product_id
+        FOR UPDATE;
 
-        IF p_current_stock < p_quantity THEN
+        IF p_current_stock IS NULL THEN
+            ROLLBACK;
+            SET p_message = 'Error: Inventory record not found';
+            SET p_order_id = 0;
+        ELSEIF p_current_stock < p_quantity THEN
             ROLLBACK;
             SET p_message = CONCAT('Error: Insufficient stock. Available: ', p_current_stock, ', Requested: ', p_quantity);
             SET p_order_id = 0;
