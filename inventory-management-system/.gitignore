@@ -19,3 +19,7 @@ venv/
 
 # Temporary SQL test files (optional, remove if you want to track them)
 # database/nn.sql
+
+# Python Scripts (User requested ignore)
+logger.py
+db_manager.py
