@@ -1,3 +1,7 @@
+CREATE DATABASE IF NOT EXISTS inventory_system;
+
+USE inventory_system;
+
 CREATE TABLE Customers (
     customer_id INT AUTO_INCREMENT PRIMARY KEY,
     first_name VARCHAR(50) NOT NULL,
@@ -19,8 +23,13 @@ CREATE TABLE Orders (
     customer_id INT NOT NULL,
     order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     total_amount DECIMAL(10, 2) NOT NULL,
-    status ENUM('Pending', 'Shipped', 'Delivered', 'Cancelled') DEFAULT 'Pending',
-    FOREIGN KEY (customer_id) REFERENCES Customers(customer_id)
+    status ENUM(
+        'Pending',
+        'Shipped',
+        'Delivered',
+        'Cancelled'
+    ) DEFAULT 'Pending',
+    FOREIGN KEY (customer_id) REFERENCES Customers (customer_id)
 );
 
 CREATE TABLE Order_Items (
@@ -29,12 +38,28 @@ CREATE TABLE Order_Items (
     quantity INT NOT NULL CHECK (quantity > 0),
     price_at_purchase DECIMAL(10, 2) NOT NULL,
     PRIMARY KEY (order_id, product_id),
-    FOREIGN KEY (order_id) REFERENCES Orders(order_id),
-    FOREIGN KEY (product_id) REFERENCES Products(product_id)
+    FOREIGN KEY (order_id) REFERENCES Orders (order_id),
+    FOREIGN KEY (product_id) REFERENCES Products (product_id)
 );
 
 CREATE TABLE Inventory (
     product_id INT PRIMARY KEY,
     quantity_on_hand INT NOT NULL CHECK (quantity_on_hand >= 0),
-    FOREIGN KEY (product_id) REFERENCES Products(product_id)
+    FOREIGN KEY (product_id) REFERENCES Products (product_id)
+);
+
+-- Table to log important system events (readable audit log)
+CREATE TABLE SystemLog (
+    log_id INT AUTO_INCREMENT PRIMARY KEY,
+    event_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    event_type VARCHAR(50) NOT NULL, -- e.g. 'ORDER_PROCESS'
+    severity ENUM('INFO', 'WARN', 'ERROR') NOT NULL,
+    message VARCHAR(255) NOT NULL,
+    customer_id INT NULL,
+    order_id INT NULL,
+    product_id INT NULL,
+    details TEXT NULL,
+    FOREIGN KEY (customer_id) REFERENCES Customers (customer_id),
+    FOREIGN KEY (order_id) REFERENCES Orders (order_id),
+    FOREIGN KEY (product_id) REFERENCES Products (product_id)
 );

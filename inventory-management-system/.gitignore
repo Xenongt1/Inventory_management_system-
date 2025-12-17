@@ -1,0 +1,21 @@
+# User requested ignores
+CODE_REVIEW_QUESTIONS.md
+
+# Logs
+*.log
+debug.log
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.env
+
+# System
+.DS_Store
+
+# IDE
+.vscode/
+
+# Temporary SQL test files (optional, remove if you want to track them)
+# database/nn.sql

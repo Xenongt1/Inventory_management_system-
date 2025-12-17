@@ -299,6 +299,11 @@ BEGIN
         ROLLBACK;
         SET p_message = 'Transaction failed: Error processing order';
         SET p_order_id = 0;
+        INSERT INTO SystemLog (
+            event_type, severity, message, customer_id, order_id, product_id, details
+        ) VALUES (
+            'ORDER_PROCESS', 'ERROR', p_message, p_customer_id, NULL, p_product_id, 'Unhandled SQL exception in ProcessNewOrder'
+        );
     END;
 
     START TRANSACTION;
@@ -307,10 +312,20 @@ BEGIN
         ROLLBACK;
         SET p_message = 'Error: Customer does not exist';
         SET p_order_id = 0;
+        INSERT INTO SystemLog (
+            event_type, severity, message, customer_id, order_id, product_id, details
+        ) VALUES (
+            'ORDER_PROCESS', 'ERROR', p_message, p_customer_id, NULL, p_product_id, 'Customer ID not found when processing order'
+        );
     ELSEIF NOT EXISTS (SELECT 1 FROM Products WHERE product_id = p_product_id) THEN
         ROLLBACK;
         SET p_message = 'Error: Product does not exist';
         SET p_order_id = 0;
+        INSERT INTO SystemLog (
+            event_type, severity, message, customer_id, order_id, product_id, details
+        ) VALUES (
+            'ORDER_PROCESS', 'ERROR', p_message, p_customer_id, NULL, p_product_id, 'Product ID not found when processing order'
+        );
     ELSE
         SELECT quantity_on_hand INTO p_current_stock
         FROM Inventory
@@ -321,10 +336,21 @@ BEGIN
             ROLLBACK;
             SET p_message = 'Error: Inventory record not found';
             SET p_order_id = 0;
+            INSERT INTO SystemLog (
+                event_type, severity, message, customer_id, order_id, product_id, details
+            ) VALUES (
+                'ORDER_PROCESS', 'ERROR', p_message, p_customer_id, NULL, p_product_id, 'Inventory record missing for product'
+            );
         ELSEIF p_current_stock < p_quantity THEN
             ROLLBACK;
             SET p_message = CONCAT('Error: Insufficient stock. Available: ', p_current_stock, ', Requested: ', p_quantity);
             SET p_order_id = 0;
+            INSERT INTO SystemLog (
+                event_type, severity, message, customer_id, order_id, product_id, details
+            ) VALUES (
+                'ORDER_PROCESS', 'ERROR', p_message, p_customer_id, NULL, p_product_id,
+                CONCAT('Insufficient stock. Available: ', p_current_stock, ', Requested: ', p_quantity)
+            );
         ELSE
             SELECT price INTO p_product_price
             FROM Products
@@ -346,6 +372,12 @@ BEGIN
 
             COMMIT;
             SET p_message = CONCAT('Success: Order ', p_order_id, ' created successfully');
+            INSERT INTO SystemLog (
+                event_type, severity, message, customer_id, order_id, product_id, details
+            ) VALUES (
+                'ORDER_PROCESS', 'INFO', p_message, p_customer_id, p_order_id, p_product_id,
+                CONCAT('Quantity: ', p_quantity, ', Unit price: ', p_product_price, ', Order total: ', p_order_total)
+            );
         END IF;
     END IF;
 
