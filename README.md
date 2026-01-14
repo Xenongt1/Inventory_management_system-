@@ -20,8 +20,6 @@ The Inventory and Order Management System is designed to streamline the manageme
 3. **Stored Procedures & Views**: 
    - `ProcessNewOrder` and `CustomerSalesSummary` are defined in `database/DML.sql`.
 
-## Documentation
-Refer to the files in the `documentation` directory for detailed information on the database schema design and a guide on how to use the SQL queries and stored procedures effectively.
 
 ## Contribution
 Contributions to enhance the functionality and performance of the Inventory and Order Management System are welcome. Please follow the standard practices for contributing to open-source projects.
