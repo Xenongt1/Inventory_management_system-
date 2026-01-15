@@ -696,14 +696,18 @@ CREATE PROCEDURE ProcessNewOrder(
     OUT p_message VARCHAR(255)
 )
 BEGIN
+    -- Temporary variables for calculations
     DECLARE p_current_stock INT;
     DECLARE p_product_price DECIMAL(10, 2);
     DECLARE p_order_total DECIMAL(10, 2);
+
+    -- SAFETY HANDLER: If any SQL error occurs, this block runs automatically
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
         SET p_message = 'Transaction failed: Error processing order';
         SET p_order_id = 0;
+        -- Record the crash in the system logs
         INSERT INTO SystemLog (
             event_type, severity, message, customer_id, order_id, product_id, details
         ) VALUES (
@@ -711,8 +715,10 @@ BEGIN
         );
     END;
 
+    -- Start the atomic transaction
     START TRANSACTION;
 
+    -- VALIDATION 1: Check if the customer exists
     IF NOT EXISTS (SELECT 1 FROM Customers WHERE customer_id = p_customer_id) THEN
         ROLLBACK;
         SET p_message = 'Error: Customer does not exist';
@@ -722,6 +728,8 @@ BEGIN
         ) VALUES (
             'ORDER_PROCESS', 'ERROR', p_message, p_customer_id, NULL, p_product_id, 'Customer ID not found when processing order'
         );
+
+    -- VALIDATION 2: Check if the product exists
     ELSEIF NOT EXISTS (SELECT 1 FROM Products WHERE product_id = p_product_id) THEN
         ROLLBACK;
         SET p_message = 'Error: Product does not exist';
@@ -731,12 +739,15 @@ BEGIN
         ) VALUES (
             'ORDER_PROCESS', 'ERROR', p_message, p_customer_id, NULL, p_product_id, 'Product ID not found when processing order'
         );
+
     ELSE
+        -- VALIDATION 3: Fetch stock and LOCK the row to prevent race conditions
         SELECT quantity_on_hand INTO p_current_stock
         FROM Inventory
         WHERE product_id = p_product_id
         FOR UPDATE;
 
+        -- VALIDATION 4: Ensure the product has an inventory record
         IF p_current_stock IS NULL THEN
             ROLLBACK;
             SET p_message = 'Error: Inventory record not found';
@@ -746,6 +757,8 @@ BEGIN
             ) VALUES (
                 'ORDER_PROCESS', 'ERROR', p_message, p_customer_id, NULL, p_product_id, 'Inventory record missing for product'
             );
+
+        -- VALIDATION 5: Ensure there is enough stock for the order
         ELSEIF p_current_stock < p_quantity THEN
             ROLLBACK;
             SET p_message = CONCAT('Error: Insufficient stock. Available: ', p_current_stock, ', Requested: ', p_quantity);
@@ -757,25 +770,33 @@ BEGIN
                 CONCAT('Insufficient stock. Available: ', p_current_stock, ', Requested: ', p_quantity)
             );
         ELSE
+            -- EXECUTION: Calculate price and create the order
             SELECT price INTO p_product_price
             FROM Products
             WHERE product_id = p_product_id;
 
             SET p_order_total = p_quantity * p_product_price;
 
+            -- 1. Create the Order Header
             INSERT INTO Orders (customer_id, order_date, total_amount, status)
             VALUES (p_customer_id, NOW(), p_order_total, 'Pending');
 
+            -- Save the new Order ID
             SET p_order_id = LAST_INSERT_ID();
 
+            -- 2. Add the items to the order
             INSERT INTO Order_Items (order_id, product_id, quantity, price_at_purchase)
             VALUES (p_order_id, p_product_id, p_quantity, p_product_price);
 
+            -- 3. Deduct from Inventory
             UPDATE Inventory
             SET quantity_on_hand = quantity_on_hand - p_quantity
             WHERE product_id = p_product_id;
 
+            -- FINAL SAVE: Commit all changes to the database
             COMMIT;
+
+            -- 4. Log Success
             SET p_message = CONCAT('Success: Order ', p_order_id, ' created successfully');
             INSERT INTO SystemLog (
                 event_type, severity, message, customer_id, order_id, product_id, details
@@ -790,10 +811,16 @@ END$$
 
 DELIMITER;
 
+SELECT * FROM customersalessummary;
+
 USE inventory_system;
 
-CALL ProcessNewOrder (3, 6, 2, @order_id, @message);
+CALL ProcessNewOrder (3, 4, 3, @order_id, @message);
 
 SELECT @message AS CallMessage;
 
-SELECT * FROM SystemLog;
+<< << << < HEAD SELECT * FROM SystemLog;
+
+= = = = = = = SELECT * FROM SystemLog;
+
+>> >> >> > bb8eac5 ( Update database scripts and remove obsolete file )

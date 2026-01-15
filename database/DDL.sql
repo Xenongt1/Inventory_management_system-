@@ -46,7 +46,9 @@ CREATE TABLE Inventory (
     product_id INT PRIMARY KEY,
     quantity_on_hand INT NOT NULL CHECK (quantity_on_hand >= 0),
     FOREIGN KEY (product_id) REFERENCES Products (product_id)
+<<<<<<< HEAD
 );
+<<<<<<< HEAD
 
 -- Table to log important system events (readable audit log)
 CREATE TABLE SystemLog (
@@ -63,3 +65,8 @@ CREATE TABLE SystemLog (
     FOREIGN KEY (order_id) REFERENCES Orders (order_id),
     FOREIGN KEY (product_id) REFERENCES Products (product_id)
 );
+=======
+=======
+);
+>>>>>>> 5102211 (Update database scripts and remove obsolete file)
+>>>>>>> bb8eac5 (Update database scripts and remove obsolete file)
