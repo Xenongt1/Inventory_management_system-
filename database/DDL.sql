@@ -47,3 +47,19 @@ CREATE TABLE Inventory (
     quantity_on_hand INT NOT NULL CHECK (quantity_on_hand >= 0),
     FOREIGN KEY (product_id) REFERENCES Products (product_id)
 );
+
+-- Table to log important system events (readable audit log)
+CREATE TABLE SystemLog (
+    log_id INT AUTO_INCREMENT PRIMARY KEY,
+    event_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    event_type VARCHAR(50) NOT NULL, -- e.g. 'ORDER_PROCESS'
+    severity ENUM('INFO', 'WARN', 'ERROR') NOT NULL,
+    message VARCHAR(255) NOT NULL,
+    customer_id INT NULL,
+    order_id INT NULL,
+    product_id INT NULL,
+    details TEXT NULL,
+    FOREIGN KEY (customer_id) REFERENCES Customers (customer_id),
+    FOREIGN KEY (order_id) REFERENCES Orders (order_id),
+    FOREIGN KEY (product_id) REFERENCES Products (product_id)
+);
