@@ -567,7 +567,7 @@ SELECT
     ) AS customer_name,
     SUM(o.total_amount) AS total_spent
 FROM Customers c
-    JOIN Orders o ON c.customer_id = o.customer_id
+    INNER JOIN Orders o ON c.customer_id = o.customer_id
 WHERE
     o.status IN ('Shipped', 'Delivered')
 GROUP BY
@@ -819,8 +819,6 @@ CALL ProcessNewOrder (3, 4, 3, @order_id, @message);
 
 SELECT @message AS CallMessage;
 
-<< << << < HEAD SELECT * FROM SystemLog;
+SELECT * FROM SystemLog;
 
-= = = = = = = SELECT * FROM SystemLog;
-
->> >> >> > bb8eac5 ( Update database scripts and remove obsolete file )
+SELECT * FROM customersalessummary;
